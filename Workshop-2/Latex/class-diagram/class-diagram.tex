@@ -19,9 +19,9 @@ This system consists of the following classes:
 
 Each class has certain attributes and methods, and the relationships between them are defined as follows.
 
-\section{Classes and Their Details}
+\subsection{Classes and Their Details}
 
-\subsection{User Class}
+\subsubsection{User Class}
 The \textbf{User} class represents the administrator who manages the parking lot operations.
 
 \subsubsection*{Attributes}
@@ -38,7 +38,7 @@ The \textbf{User} class represents the administrator who manages the parking lot
     \item \texttt{logout(): void}: Logs the user out of the system.
 \end{itemize}
 
-\subsection{Vehicle Class}
+\subsubsection{Vehicle Class}
 The \textbf{Vehicle} class represents a vehicle entering or exiting the parking lot.
 
 \subsubsection*{Attributes}
@@ -55,7 +55,7 @@ The \textbf{Vehicle} class represents a vehicle entering or exiting the parking 
     \item \texttt{registerExit(): void}: Records the exit time of the vehicle.
 \end{itemize}
 
-\subsection{ParkingTicket Class}
+\subsubsection{ParkingTicket Class}
 The \textbf{ParkingTicket} class represents a ticket issued when a vehicle enters the parking lot.
 
 \subsubsection*{Attributes}
@@ -73,7 +73,7 @@ The \textbf{ParkingTicket} class represents a ticket issued when a vehicle enter
     \item \texttt{closeTicket(): void}: Closes the ticket and calculates the parking fee based on the duration.
 \end{itemize}
 
-\subsection{ParkingLot Class}
+\subsubsection{ParkingLot Class}
 The \textbf{ParkingLot} class represents the parking lot itself and manages parking spaces.
 
 \subsubsection*{Attributes}
@@ -92,7 +92,7 @@ The \textbf{ParkingLot} class represents the parking lot itself and manages park
     \item \texttt{calculateFee(duration: Float): Float}: Calculates the parking fee based on the duration the vehicle stayed.
 \end{itemize}
 
-\subsection{ParkingSession Class}
+\subsubsection{ParkingSession Class}
 The \textbf{ParkingSession} class tracks the duration and fee for a vehicle's parking session.
 
 \subsubsection*{Attributes}
@@ -110,40 +110,40 @@ The \textbf{ParkingSession} class tracks the duration and fee for a vehicle's pa
     \item \texttt{calculateFee(ratePerHour: Float): Float}: Calculates the fee based on the duration and rate per hour.
 \end{itemize}
 
-\section{Relationships Between Classes}
+\subsection{Relationships Between Classes}
 
-\subsection{User ↔ ParkingLot}
+\subsubsection{User $<->$ ParkingLot}
 The \textbf{User} class (admin) interacts with the \textbf{ParkingLot} class to view and manage the parking lot's statistics and vehicle entries and exits.
 
 \subsubsection*{Relationship Type}
 \begin{itemize}
     \item \textbf{Association}: The admin interacts with the parking lot but does not own it.
-    \item \textbf{Multiplicity}: 1 \texttt{User} ↔ 1 \texttt{ParkingLot} (one user can manage one parking lot).
+    \item \textbf{Multiplicity}: 1 \texttt{User} $<->$ 1 \texttt{ParkingLot} (one user can manage one parking lot).
 \end{itemize}
 
-\subsection{Vehicle ↔ ParkingTicket}
+\subsubsection{Vehicle $<->$ ParkingTicket}
 The \textbf{Vehicle} class is associated with the \textbf{ParkingTicket} class, which tracks the vehicle's entry and exit times.
 
 \subsubsection*{Relationship Type}
 \begin{itemize}
     \item \textbf{Composition}: A parking ticket cannot exist without the vehicle it is assigned to.
-    \item \textbf{Multiplicity}: 1 \texttt{Vehicle} ↔ 1 \texttt{ParkingTicket} (each vehicle has exactly one parking ticket).
+    \item \textbf{Multiplicity}: 1 \texttt{Vehicle} $<->$ 1 \texttt{ParkingTicket} (each vehicle has exactly one parking ticket).
 \end{itemize}
 
-\subsection{ParkingLot ↔ Vehicle}
+\subsubsection{ParkingLot $<->$ Vehicle}
 The \textbf{ParkingLot} class manages multiple vehicles, and each vehicle occupies one parking space.
 
 \subsubsection*{Relationship Type}
 \begin{itemize}
     \item \textbf{Association}: The parking lot can contain multiple vehicles.
-    \item \textbf{Multiplicity}: 1 \texttt{ParkingLot} ↔ 0..* \texttt{Vehicle} (a parking lot can contain multiple vehicles, but a vehicle is in only one parking lot at a time).
+    \item \textbf{Multiplicity}: 1 \texttt{ParkingLot} $<->$ 0..* \texttt{Vehicle} (a parking lot can contain multiple vehicles, but a vehicle is in only one parking lot at a time).
 \end{itemize}
 
-\subsection{ParkingTicket ↔ ParkingSession}
+\subsubsection{ParkingTicket $<->$ ParkingSession}
 The \textbf{ParkingTicket} class is associated with the \textbf{ParkingSession} class, which tracks the duration and fee of the parking session.
 
 \subsubsection*{Relationship Type}
 \begin{itemize}
     \item \textbf{Association}: Each parking ticket has one associated parking session.
-    \item \textbf{Multiplicity}: 1 \texttt{ParkingTicket} ↔ 1 \texttt{ParkingSession} (one ticket has exactly one parking session).
+    \item \textbf{Multiplicity}: 1 \texttt{ParkingTicket} $<->$ 1 \texttt{ParkingSession} (one ticket has exactly one parking session).
 \end{itemize}
