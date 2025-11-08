@@ -2,52 +2,50 @@
 Logic to create a ticket
 """
 
-from datetime import date
+from datetime import datetime
 from sqlmodel import Session, select
-from models import Ticket, Vehicle, LotSpace
-import crud
+from models import Ticket, Vehicle, LotSpace, Fee
+from fastapi import HTTPException
 
 
 def registrar_entrada(
     session: Session, ownerdoc: str, licenseplate: str, idFee: str, idUser: str
 ):
-    """Registra la entrada de un vehículo al parqueadero"""
-
-    # Verificar si el vehículo ya tiene un ticket sin salida
-    ticket_existente = session.exec(
+    # Verificar si ya tiene ticket abierto
+    ticket_activo = session.exec(
         select(Ticket).where(Ticket.licenseplate == licenseplate, Ticket.exit == None)
     ).first()
+    if ticket_activo:
+        raise HTTPException(
+            status_code=400, detail="El vehículo ya tiene un ticket activo."
+        )
 
-    if ticket_existente:
-        raise ValueError("El vehículo ya está registrado dentro del parqueadero.")
-
-    # Verificar que haya espacio disponible
     vehiculo = session.get(Vehicle, licenseplate)
     if not vehiculo:
-        raise ValueError("Vehículo no registrado.")
+        raise HTTPException(status_code=404, detail="Vehículo no registrado.")
 
+    # Verificar disponibilidad
     espacio = session.exec(
         select(LotSpace).where(LotSpace.type == vehiculo.type)
     ).first()
-
     if not espacio or espacio.totalSpace <= 0:
-        raise ValueError(f"No hay espacios disponibles para {vehiculo.type}")
+        raise HTTPException(
+            status_code=400,
+            detail="No hay espacios disponibles para este tipo de vehículo.",
+        )
 
-    # Reducir espacio disponible
-    espacio.totalSpace -= 1
-    session.add(espacio)
-
-    # Crear el ticket
+    # Crear ticket
     nuevo_ticket = Ticket(
         ownerdoc=ownerdoc,
-        entry=date.today(),
+        entry=datetime.now(),
         licenseplate=licenseplate,
         idFee=idFee,
         idUser=idUser,
     )
 
-    session.add(nuevo_ticket)
+    # Reducir espacio
+    espacio.totalSpace -= 1
+    session.add_all([nuevo_ticket, espacio])
     session.commit()
     session.refresh(nuevo_ticket)
-
     return nuevo_ticket

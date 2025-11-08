@@ -21,6 +21,10 @@ from schemas import (
     LotSpaceRead,
 )
 import crud
+from services.ticket_service import registrar_entrada
+from services.payment_service import registrar_salida_y_pago
+from services.lot_service import obtener_disponibilidad
+from services.vehicle_service import registrar_vehiculo
 
 app = FastAPI(title="Parqueadero API")
 
@@ -116,3 +120,31 @@ def crear_lotspace(data: LotSpaceCreate, session: Session = Depends(get_session)
 @app.get("/lotspaces/", response_model=list[LotSpaceRead])
 def listar_lotspaces(session: Session = Depends(get_session)):
     return crud.obtener_todos(session, LotSpace)
+
+
+@app.post("/entrada/")
+def entrada(
+    ownerdoc: str,
+    licenseplate: str,
+    idFee: str,
+    idUser: str,
+    session: Session = Depends(get_session),
+):
+    return registrar_entrada(session, ownerdoc, licenseplate, idFee, idUser)
+
+
+@app.post("/salida/{ticketid}")
+def salida(ticketid: int, session: Session = Depends(get_session)):
+    return registrar_salida_y_pago(session, ticketid)
+
+
+@app.get("/disponibilidad/")
+def disponibilidad(session: Session = Depends(get_session)):
+    return obtener_disponibilidad(session)
+
+
+@app.post("/vehiculos/")
+def nuevo_vehiculo(
+    licenseplate: str, type: str, session: Session = Depends(get_session)
+):
+    return registrar_vehiculo(session, licenseplate, type)
