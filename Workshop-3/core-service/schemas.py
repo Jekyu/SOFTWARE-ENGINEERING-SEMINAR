@@ -10,16 +10,22 @@ from models import UserType, VehicleType
 
 # ----- USER -----
 class UserCreate(SQLModel):
-    idUser: str
+    iduser: str
     username: str
     password: str
     type: UserType
 
+    class Config:
+        use_enum_values = True
+
 
 class UserRead(SQLModel):
-    idUser: str
+    iduser: str
     username: str
     type: UserType
+
+    class Config:
+        use_enum_values = True
 
 
 # ----- VEHICLE -----
@@ -35,10 +41,10 @@ class VehicleRead(VehicleCreate):
 
 # ----- FEE -----
 class FeeCreate(SQLModel):
-    idFee: str
-    descFee: str
+    idfee: str
+    descfee: str
     type: VehicleType
-    priceFee: float
+    pricefee: float
 
 
 class FeeRead(FeeCreate):
@@ -51,8 +57,8 @@ class TicketCreate(SQLModel):
     entry: date
     exit: Optional[date] = None
     licenseplate: str
-    idFee: str
-    idUser: str
+    idfee: str
+    iduser: str
 
 
 class TicketRead(TicketCreate):

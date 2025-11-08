@@ -1,4 +1,7 @@
-# main.py
+"""
+Main Script of Core-Service
+"""
+
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session
 from database import get_session, init_db

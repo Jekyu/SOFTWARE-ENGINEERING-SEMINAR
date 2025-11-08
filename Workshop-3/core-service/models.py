@@ -5,7 +5,7 @@ The script funtion is create and enable the models for each table of DB
 from enum import Enum
 from typing import Optional, List
 from datetime import date
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, Column, Enum as PgEnum
 
 # -----------------------------
 #           ENUM TYPES
@@ -13,8 +13,8 @@ from sqlmodel import SQLModel, Field, Relationship
 
 
 class UserType(str, Enum):
-    MACHINE_REGISTER = "MACHINE REGISTER"
-    HUMAN_REGISTER = "HUMAN REGISTER"
+    MACHINE = "MACHINE REGISTER"
+    HUMAN = "HUMAN REGISTER"
 
 
 class VehicleType(str, Enum):
@@ -37,7 +37,7 @@ class VehicleType(str, Enum):
 class UserP(SQLModel, table=True):
     __tablename__ = "userp"
 
-    idUser: str = Field(primary_key=True, max_length=15)
+    iduser: str = Field(primary_key=True, max_length=15)
     username: str = Field(max_length=30)
     password: str = Field(max_length=35)
     type: UserType
@@ -58,10 +58,10 @@ class Vehicle(SQLModel, table=True):
 class Fee(SQLModel, table=True):
     __tablename__ = "fee"
 
-    idFee: str = Field(primary_key=True, max_length=10)
-    descFee: str = Field(max_length=255)
+    idfee: str = Field(primary_key=True, max_length=10)
+    descfee: str = Field(max_length=255)
     type: VehicleType
-    priceFee: float
+    pricefee: float
 
     tickets: List["Ticket"] = Relationship(back_populates="fee")
 
@@ -75,8 +75,8 @@ class Ticket(SQLModel, table=True):
     exit: Optional[date] = None
 
     licenseplate: str = Field(foreign_key="vehicle.licenseplate")
-    idFee: str = Field(foreign_key="fee.idFee")
-    idUser: str = Field(foreign_key="userp.idUser")
+    idfee: str = Field(foreign_key="fee.idfee")
+    iduser: str = Field(foreign_key="userp.iduser")
 
     # Relaciones
     vehicle: Optional[Vehicle] = Relationship(back_populates="tickets")
