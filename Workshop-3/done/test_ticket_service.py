@@ -6,7 +6,7 @@ def setup_ticket_env(session):
     v = Vehicle(
         licenseplate="AAA111", type=VehicleType.CAR, dateRegistered="2024-01-01"
     )
-    f = Fee(idFee="F1", descFee="Carros", type=VehicleType.CAR, priceFee=2000)
+    f = Fee(idfee="F1", descfee="Carros", type=VehicleType.CAR, pricefee=2000)
     l = LotSpace(idLotSpace="L1", type=VehicleType.CAR, totalSpace=5)
     session.add_all([v, f, l])
     session.commit()

@@ -1,150 +1,64 @@
-"""
-Main Script of Core-Service
-"""
+from pickletools import float8
+from fastapi import FastAPI
+from services.user_services import create_user, autenticate_user
+from services.fee_services import get_all_fees, create_fee, delete_fee
+from services.vehicle_services import register_vehicle, get_vehicle, get_all_vehicles
+from database import try_connection
 
-from fastapi import FastAPI, Depends, HTTPException
-from sqlmodel import Session
-from database import get_session, init_db
-from models import UserP, Vehicle, Fee, Ticket, Payment, LotSpace
-from schemas import (
-    UserCreate,
-    UserRead,
-    VehicleCreate,
-    VehicleRead,
-    FeeCreate,
-    FeeRead,
-    TicketCreate,
-    TicketRead,
-    PaymentCreate,
-    PaymentRead,
-    LotSpaceCreate,
-    LotSpaceRead,
-)
-import crud
-from services.ticket_service import registrar_entrada
-from services.payment_service import registrar_salida_y_pago
-from services.lot_service import obtener_disponibilidad
-from services.vehicle_service import registrar_vehiculo
-
-app = FastAPI(title="Parqueadero API")
+app = FastAPI(title="Parking")
 
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
+@app.get("/")
+def root():
+    return
 
 
-# === USERS ===
-@app.post("/users/", response_model=UserRead)
-def crear_usuario(user: UserCreate, session: Session = Depends(get_session)):
-    nuevo = UserP.from_orm(user)
-    return crud.crear_registro(session, nuevo)
+@app.get("/conection/")
+def try_connection_db():
+    return {"message": f">{try_connection()}"}
 
 
-@app.get("/users/", response_model=list[UserRead])
-def listar_usuarios(session: Session = Depends(get_session)):
-    return crud.obtener_todos(session, UserP)
+@app.post("/user/")
+def create_user_endpoint(idUser: str, username: str, password: str, tipo: str):
+    return create_user(idUser, username, password, tipo)
 
 
-@app.get("/users/{idUser}", response_model=UserRead)
-def obtener_usuario(idUser: str, session: Session = Depends(get_session)):
-    registro = crud.obtener_por_id(session, UserP, idUser)
-    if not registro:
-        raise HTTPException(404, "Usuario no encontrado")
-    return registro
+@app.post("/login/")
+def login_endpoint(username: str, password: str):
+    return autenticate_user(username, password)
 
 
-@app.delete("/users/{idUser}")
-def eliminar_usuario(idUser: str, session: Session = Depends(get_session)):
-    registro = crud.eliminar_registro(session, UserP, idUser)
-    if not registro:
-        raise HTTPException(404, "Usuario no encontrado")
-    return {"ok": True}
+# -----     FEE     -------
 
 
-# === VEHICLES ===
-@app.post("/vehicles/", response_model=VehicleRead)
-def crear_vehicle(data: VehicleCreate, session: Session = Depends(get_session)):
-    nuevo = Vehicle.from_orm(data)
-    return crud.crear_registro(session, nuevo)
+@app.post("/fee/")
+def create_fee_endpoint(idfee: str, descfee: str, type: str, price: float):
+    return create_fee(idfee, descfee, type, price)
 
 
-@app.get("/vehicles/", response_model=list[VehicleRead])
-def listar_vehicles(session: Session = Depends(get_session)):
-    return crud.obtener_todos(session, Vehicle)
+@app.get("/fee/")
+def get_all_fees_endpoint():
+    return get_all_fees()
 
 
-# === FEE ===
-@app.post("/fees/", response_model=FeeRead)
-def crear_fee(data: FeeCreate, session: Session = Depends(get_session)):
-    nuevo = Fee.from_orm(data)
-    return crud.crear_registro(session, nuevo)
+@app.post("/fee/{idfee}")
+def delete_fee_endpoint(idfee):
+    return delete_fee(idfee)
 
 
-@app.get("/fees/", response_model=list[FeeRead])
-def listar_fees(session: Session = Depends(get_session)):
-    return crud.obtener_todos(session, Fee)
+# -----     VEHICLE     -------
 
 
-# === TICKETS ===
-@app.post("/tickets/", response_model=TicketRead)
-def crear_ticket(data: TicketCreate, session: Session = Depends(get_session)):
-    nuevo = Ticket.from_orm(data)
-    return crud.crear_registro(session, nuevo)
+@app.post("/vehicle/")
+def register_vehicle_endpoint(licenseplate: str, type: str):
+    return register_vehicle("AAA001", "CAR")
 
 
-@app.get("/tickets/", response_model=list[TicketRead])
-def listar_tickets(session: Session = Depends(get_session)):
-    return crud.obtener_todos(session, Ticket)
+@app.get("/vechicle/")
+def get_all_vehicles_endpoint():
+    return get_all_vehicles()
 
 
-# === PAYMENTS ===
-@app.post("/payments/", response_model=PaymentRead)
-def crear_pago(data: PaymentCreate, session: Session = Depends(get_session)):
-    nuevo = Payment.from_orm(data)
-    return crud.crear_registro(session, nuevo)
-
-
-@app.get("/payments/", response_model=list[PaymentRead])
-def listar_pagos(session: Session = Depends(get_session)):
-    return crud.obtener_todos(session, Payment)
-
-
-# === LOT SPACE ===
-@app.post("/lotspaces/", response_model=LotSpaceRead)
-def crear_lotspace(data: LotSpaceCreate, session: Session = Depends(get_session)):
-    nuevo = LotSpace.from_orm(data)
-    return crud.crear_registro(session, nuevo)
-
-
-@app.get("/lotspaces/", response_model=list[LotSpaceRead])
-def listar_lotspaces(session: Session = Depends(get_session)):
-    return crud.obtener_todos(session, LotSpace)
-
-
-@app.post("/entrada/")
-def entrada(
-    ownerdoc: str,
-    licenseplate: str,
-    idFee: str,
-    idUser: str,
-    session: Session = Depends(get_session),
-):
-    return registrar_entrada(session, ownerdoc, licenseplate, idFee, idUser)
-
-
-@app.post("/salida/{ticketid}")
-def salida(ticketid: int, session: Session = Depends(get_session)):
-    return registrar_salida_y_pago(session, ticketid)
-
-
-@app.get("/disponibilidad/")
-def disponibilidad(session: Session = Depends(get_session)):
-    return obtener_disponibilidad(session)
-
-
-@app.post("/vehiculos/")
-def nuevo_vehiculo(
-    licenseplate: str, type: str, session: Session = Depends(get_session)
-):
-    return registrar_vehiculo(session, licenseplate, type)
+@app.get("/vechicle/{idfee}")
+def get_vehicle_endpoint(licenseplate: str):
+    return get_vehicle(licenseplate)

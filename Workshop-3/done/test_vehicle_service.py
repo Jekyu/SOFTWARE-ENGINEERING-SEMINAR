@@ -8,6 +8,6 @@ def test_registrar_vehiculo(session):
 
 
 def test_registrar_vehiculo_existente(session):
-    registrar_vehiculo(session, "XYZ789", "BUS")
-    v2 = registrar_vehiculo(session, "XYZ789", "BUS")
-    assert v2.type == "BUS"
+    registrar_vehiculo(session, "ABC123", "CAR")
+    v2 = registrar_vehiculo(session, "ABC123", "CAR")
+    assert v2.type == "CAR"
