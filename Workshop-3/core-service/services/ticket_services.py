@@ -1,41 +1,48 @@
 from database import run_query
 from datetime import datetime
 from services.vehicle_services import register_vehicle, get_vehicle
+from services.fee_services import get_fee
 
 
-def registrar_entrada(placa, tipo):
+def ticket_register(licenseplate, type, ownerdoc, idFee, idUser):
     existe = run_query(
         "SELECT * FROM ticket WHERE licenseplate = %s AND exit IS NULL",
-        (placa,),
+        (licenseplate,),
         fetch=True,
     )
     if existe:
-        return {"error": "Vehículo ya dentro."}
+        return {"error": "Vehicle is already inside with an active ticket"}
+
+    if get_vehicle(licenseplate)["error"]:
+        register_vehicle(licenseplate, type)
+
     run_query(
         "INSERT INTO ticket (ownerdoc, entry, licenseplate, idFee, idUser) VALUES (%s, %s, %s, %s, %s)",
-        ("000", datetime.now(), placa, "F001", "U001"),
+        (ownerdoc, datetime.now(), licenseplate, idFee, idUser),
     )
-    return {"ok": f"Vehículo {placa} ingresó correctamente."}
+    return {"ok": f"Vehicle {licenseplate} ticket created succesfully!."}
 
 
-def registrar_salida(placa):
+def exit_register(licenseplate):
     ticket = run_query(
         "SELECT * FROM ticket WHERE licenseplate = %s AND exit IS NULL",
-        (placa,),
+        (licenseplate,),
         fetch=True,
     )
     if not ticket:
-        return {"error": "No hay ticket activo."}
+        return {"error": f"There is no active ticket for {licenseplate}"}
     ticket = ticket[0]
-    entry_time = ticket["entry"]
+    entry_time = ticket[2]
+
     horas = round((datetime.now() - entry_time).seconds / 3600, 2) or 1
-    pago = horas * 2000
+    pago = horas * get_fee(ticket[5])
+
     run_query(
         "UPDATE ticket SET exit = %s WHERE ticketid = %s",
-        (datetime.now(), ticket["ticketid"]),
+        (datetime.now(), ticket[0]),
     )
     run_query(
         "INSERT INTO payment (ticketid, datepayment, payment) VALUES (%s, %s, %s)",
-        (ticket["ticketid"], datetime.now(), pago),
+        (ticket[0], datetime.now(), pago),
     )
-    return {"ok": f"Salida registrada. Total a pagar: {pago}"}
+    return {"ok": f"Exit registered. Payment: {pago}"}

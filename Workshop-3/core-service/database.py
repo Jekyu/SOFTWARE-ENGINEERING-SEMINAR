@@ -1,4 +1,7 @@
-# database.py
+"""
+The script funcion is connect the PostgreSQL DB with the core-service using pyscopg2
+"""
+
 import psycopg2
 from psycopg2 import sql
 
