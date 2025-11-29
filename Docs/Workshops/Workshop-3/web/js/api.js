@@ -49,14 +49,14 @@ async function loginRequest(email, password) {
 }
 
 // Registro de usuario con código de acceso único
-async function registerRequest(email, password, accessCode) {
+async function registerRequest(username, email, password) {
   const res = await fetch(`${AUTH_API_URL}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      username,
       email,
-      password,
-      access_code: accessCode
+      password
     })
   })
 
