@@ -3,10 +3,10 @@ name: CI Workshop 3
 on:
   push:
     paths:
-      - 'Docs/Workshops/Workshop-3/**'
+      - "Docs/Workshops/Workshop-3/**"
   pull_request:
     paths:
-      - 'Docs/Workshops/Workshop-3/**'
+      - "Docs/Workshops/Workshop-3/**"
 
 jobs:
   auth-service:
@@ -33,20 +33,11 @@ jobs:
     name: Build Docker image for auth-service
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: Docs/Workshops/Workshop-3/auth-service
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Build Docker image
         run: |
-            docker build \
-            -f Dockerfile \
-            -t auth-service:latest \
-            .
-
-  
-
+          cd Docs/Workshops/Workshop-3/auth-service
+          docker build -t auth-service:latest .
