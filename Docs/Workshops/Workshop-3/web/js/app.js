@@ -181,7 +181,7 @@ if (loginForm) {
   })
 }
 
-// ---- REGISTRO CON CÓDIGO ÚNICO ----
+// ---- REGISTRO CON USUARIO ÚNICO ----
 
 if (registerForm) {
   registerForm.addEventListener('submit', async (e) => {
