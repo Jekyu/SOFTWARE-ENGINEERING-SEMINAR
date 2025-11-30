@@ -189,23 +189,23 @@ if (registerForm) {
     registerError.textContent = ''
     registerSuccess.textContent = ''
 
+    const username = document
+      .getElementById('register-username')
+      .value.trim()
     const email = document
       .getElementById('register-email')
       .value.trim()
     const password = document
       .getElementById('register-password')
       .value.trim()
-    const code = document
-      .getElementById('register-code')
-      .value.trim()
 
-    if (!email || !password || !code) {
-      registerError.textContent = 'All fields are required.'
+    if (!username || !email || !password) {
+      registerError.textContent = 'Todos los campos son obligatorios.'
       return
     }
 
     try {
-      await registerRequest(email, password, code)
+      await registerRequest(username, email, password)
       registerSuccess.textContent =
         'Account created successfully. You can now sign in.'
       // Opcional: volver automáticamente al login

@@ -83,12 +83,23 @@
 
     <!-- SECCIÓN REGISTRO CON CÓDIGO ÚNICO -->
     <section id="register-section" class="card login-card hidden">
-      <h1>Create Account</h1>
+      <h1>Crear Cuenta</h1>
       <p class="subtitle">
-        Register a new account using your unique access code provided by the administrator.
+        Registra una nueva cuenta con un nombre de usuario único.
       </p>
 
       <form id="register-form" class="form">
+        <label>
+          Nombre de usuario
+          <input
+            type="text"
+            id="register-username"
+            class="input"
+            placeholder="Ej: operador01"
+            required
+          />
+        </label>
+
         <label>
           Email
           <input
@@ -111,30 +122,20 @@
           />
         </label>
 
-        <label>
-          Access Code
-          <input
-            type="text"
-            id="register-code"
-            class="input"
-            placeholder="Your unique access code"
-            required
-          />
-        </label>
-
         <!-- Mensajes de error / éxito -->
         <div id="register-error" class="form-error"></div>
         <div id="register-success" class="form-info"></div>
 
         <button type="submit" class="btn btn-primary full">
-          Create Account
+          Crear Cuenta
         </button>
       </form>
 
       <p class="helper-text">
-        Already have an account?
-        <a href="#" id="go-login" class="link-inline">Sign in here.</a>
+        ¿Ya tienes una cuenta?
+        <a href="#" id="go-login" class="link-inline">Inicia sesión aquí.</a>
       </p>
+      
     </section>
 
     <!-- SECCIÓN DE APLICACIÓN (SOLO CON SESIÓN) -->
