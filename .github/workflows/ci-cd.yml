@@ -30,19 +30,5 @@ jobs:
       - name: Build with Maven
         run: mvn -B -e clean install
 
-  docker-build-auth-service:
-    name: Build Docker image for auth-service
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: Docs/Workshops/Workshop-3/auth-service
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: |
-          docker build -f Dockerfile -t auth-service:latest .
+  
 
