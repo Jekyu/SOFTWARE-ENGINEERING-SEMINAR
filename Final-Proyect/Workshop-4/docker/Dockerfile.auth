@@ -1,7 +1,7 @@
 # Build Spring Boot auth service
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /workspace/auth-service
-COPY Workshop-3/auth-service /workspace/auth-service
+COPY Final-Proyect/Workshop-3/auth-service /workspace/auth-service
 RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:17-jre
