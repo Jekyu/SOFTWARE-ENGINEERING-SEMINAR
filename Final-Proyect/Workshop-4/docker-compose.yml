@@ -37,7 +37,7 @@ services:
   auth-service:
     build:
       context: ..
-      dockerfile: Workshop-4/docker/Dockerfile.auth
+      dockerfile: /Workshop-4/docker/Dockerfile.auth
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/parking_auth?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: parking_user
@@ -51,7 +51,7 @@ services:
   core-service:
     build:
       context: ..
-      dockerfile: Workshop-4/docker/Dockerfile.core
+      dockerfile: /Workshop-4/docker/Dockerfile.core
     environment:
       DATABASE_URL: postgresql+psycopg2://admon:admon@postgres:5432/parking
     depends_on:
@@ -63,7 +63,7 @@ services:
   web:
     build:
       context: ..
-      dockerfile: Workshop-4/docker/Dockerfile.web
+      dockerfile: /Workshop-4/docker/Dockerfile.web
     depends_on:
       - auth-service
       - core-service
