@@ -1,0 +1,303 @@
+%------------------
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts                         % Enable \thanks
+\usepackage{cite}                                    % Numeric citations
+\usepackage[cmex10]{amsmath,amssymb}                 % Math symbols
+\usepackage{graphicx}                                % Include figures
+\usepackage[hidelinks]{hyperref}                     % Clickable links
+\usepackage{enumitem}                                % Customized lists (kept, but avoided in text)
+\usepackage{tikz}                                    % Diagrams and drawings
+\usetikzlibrary{positioning, arrows.meta, shapes, fit}
+
+\usetikzlibrary{positioning}
+
+\graphicspath{{figures/}}
+\urlstyle{same}
+
+\title{\LARGE \bf Parking Management System: Dual-Backend Web Architecture for Slot Tracking, Billing, and DevOps-Ready Delivery}
+
+\author{
+\IEEEauthorblockN{
+Andr\'es~Felipe~Mateus~Saavedra,
+Anderson~Jefrey~L\'opez~Jim\'enez,
+Juan~Esteban~Oviedo~Sandoval
+}
+\IEEEauthorblockA{
+Systems Engineering Project\\
+Universidad Distrital Francisco Jos\'e de Caldas (UDFJC)\\
+Bogot\'a D.C., Colombia\\
+Student codes: 20201020119, 20162020424, 20192020064\\
+Emails: afmateuss@udistrital.edu.co, ajlopezj@udistrital.edu.co, jeoviedos@udistrital.edu.co
+}
+}
+
+\begin{document}
+\maketitle
+
+%% ------------ Abstract ------------
+\begin{abstract}
+Parking facilities require reliable control of vehicle entry/exit, space assignment, and fee calculation while providing operators with real-time indicators.
+We present a modular Parking Management System that separates authentication (Spring Boot with JWT) from domain logic (FastAPI with SQLAlchemy) and integrates a lightweight Web GUI for daily operation.
+The resulting platform supports slot-based sessions, automated billing with minute rounding, and an automation-ready delivery pipeline including unit tests, acceptance tests, containerization, and CI/CD evidence.
+\end{abstract}
+
+%% ------------ Keywords ------------
+\begin{IEEEkeywords}
+parking management, microservices, FastAPI, Spring Boot, JWT, Docker, CI/CD, software testing
+\end{IEEEkeywords}
+
+%% ------------ Sections ------------
+\section{Introduction}
+Parking management software is a representative transaction-oriented information system: it must register events (entries and exits), keep state consistent (occupied slots), and compute derived values (time and cost) in a way that is transparent for operators and auditable for customers.
+In real deployments, requirements often evolve from simple entry logs to more complete operational dashboards that aggregate occupancy, pricing, and activity, which increases the need for maintainable architecture and testable business rules.
+
+From a software engineering perspective, this scenario is well suited to applying service separation and API-driven integration.
+A service-oriented approach reduces coupling compared with a monolith and makes it easier to evolve security and domain logic independently.
+The system exposes REST endpoints following common architectural principles \cite{fielding2000} and uses JSON Web Tokens (JWT) to carry authentication context between requests \cite{rfc7519}.
+The implementation relies on widely adopted frameworks and tools: Spring Boot for the authentication service \cite{springboot}, FastAPI for the core service \cite{fastapi}, and PostgreSQL as the primary datastore for the core domain \cite{postgres}.
+To improve reproducibility and automation, we containerize the components using Docker and Docker Compose \cite{docker}, validate critical user stories with Cucumber acceptance tests \cite{cucumber}, evaluate endpoint behavior under load using Apache JMeter \cite{jmeter}, and integrate continuous testing and build checks with GitHub Actions \cite{githubactions}.
+This paper summarizes the final system and consolidates evidence previously documented in the Workshop 3 and 4 deliverables \cite{workshop3doc,workshop4doc}.
+
+\section{Methods and Materials}
+\subsection{System Decomposition}
+Figure~\ref{fig:arch} illustrates the high-level architecture.
+The Web GUI is a thin client implemented with HTML, CSS, and vanilla JavaScript that manages the operator workflow and communicates with two backends through HTTP \emph{fetch} requests.
+The Auth-service provides \texttt{/register} and \texttt{/login} endpoints and returns a signed JWT.
+The Core-service encapsulates the parking domain, including slot state, active sessions, billing, and aggregated statistics exposed through dedicated endpoints.
+This decomposition enables independent scaling, clearer ownership, and simpler automated testing at multiple levels.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_architecture_v2.png}
+\caption{High-level architecture with a Web GUI consuming separate authentication and core REST services.}
+\label{fig:arch}
+\end{figure}
+
+Table~\ref{tab:components} summarizes the main components and their responsibilities.
+
+\begin{table}[t]
+\centering
+\caption{Main components and responsibilities.}
+\label{tab:components}
+\begin{tabular}{p{1.25cm} p{1.15cm} p{4.6cm}}
+\hline
+\textbf{Layer} & \textbf{Tech} & \textbf{Responsibilities} \\
+\hline
+Web GUI & HTML/JS & Operator views (dashboard and sessions), input validation/formatting, token storage, receipt modal. \\
+Auth-service & Spring & User registration/login, JWT issuing, access control boundary. \\
+Core-service & FastAPI & Slot assignment, session state, billing computation, statistics, persistence. \\
+Database & SQL & Persist slots/sessions; maintain referential integrity and queryable history. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Configuration and Local Execution}
+For local development, each component runs on a dedicated port: the Core-service on \texttt{:8000}, the Auth-service on \texttt{:8080}, and the static Web GUI on a lightweight HTTP server (e.g., \texttt{:5500}).
+The browser stores the JWT in \texttt{localStorage} and attaches it as an \texttt{Authorization: Bearer} header in protected requests.
+On the backend side, configuration is environment-driven (database URL, secret keys, and allowed origins for CORS), allowing the same codebase to run in local mode, containers, or CI.
+This setup also supports a SQLite fallback for quick demos when a PostgreSQL instance is not available, while preserving the same API contracts.
+
+\subsection{Data Model and Plate Normalization}
+The core domain uses two primary entities: \emph{Slot} and \emph{ParkingSession}.
+A slot has an identifier, a human-readable code, and an occupancy flag; a parking session stores the plate, the assigned slot, timestamps for entry/exit, and the computed amount.
+Figure~\ref{fig:er} summarizes these relationships.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_er_v2.png}
+\caption{Core data model (ER-style) centered on slots and parking sessions.}
+\label{fig:er}
+\end{figure}
+
+Vehicle plates are normalized at the service boundary to reduce duplicates and simplify lookups.
+Internally, plates are stored uppercased without separators, while the GUI formats them for display as \texttt{ABC-123}.
+A shared regular expression validates the user input before requesting an entry or exit operation.
+
+\subsection{Core API and Business Rules}
+The Core-service acts as the source of truth for time and fee calculations.
+To keep the operator experience consistent across browsers, the GUI displays the values returned by the service, and only performs lightweight formatting (e.g., plate formatting and currency display).
+
+Table~\ref{tab:endpoints} lists the core endpoints used by the GUI in the final iteration.
+
+\begin{table}[t]
+\centering
+\caption{Core-service endpoints used by the Web GUI.}
+\label{tab:endpoints}
+\begin{tabular}{p{1.1cm} p{2.2cm} p{2.9cm}}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Purpose} \\
+\hline
+GET & \texttt{/stats/overview} & KPIs (occupancy, active sessions, current rate). \\
+GET & \texttt{/slots} & List slots with current occupancy and plate (if active). \\
+GET & \texttt{/sessions} & Recent session history (ordering/limit). \\
+POST & \texttt{/entries} & Register entry, assign a free slot, open session. \\
+POST & \texttt{/exits} & Register exit, compute minutes/amount, free slot. \\
+\hline
+\end{tabular}
+\end{table}
+
+Billing is defined as a constant rate per minute:
+\begin{equation}
+\label{eq:rate}
+\mathrm{amount} = \mathrm{minutes} \times \mathrm{rate\_per\_minute},
+\end{equation}
+with minute rounding toward the next full minute:
+\begin{equation}
+\label{eq:ceil}
+\mathrm{minutes}=\max\left(1,\left\lceil\frac{\Delta t}{60}\right\rceil\right),
+\end{equation}
+where $\Delta t$ is the difference between the exit and entry timestamps in seconds.
+This rule avoids undercharging for partial minutes and enforces a minimum of one minute.
+
+A practical implementation detail is time handling.
+During development, the system faced issues caused by mixing timezone-aware and timezone-naive datetimes when persisting timestamps without explicit timezone metadata.
+To eliminate mismatches in local execution, the final configuration treats stored timestamps consistently as local time within the core service and avoids force-setting timezones on persisted values.
+
+\subsection{Operator Workflow Visualization}
+To document the human workflow, Fig.~\ref{fig:workflow} models the main steps an operator follows.
+This diagram complements the service-level view in Fig.~\ref{fig:arch} by emphasizing the sequence of actions and checks performed at the UI layer.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[node distance=7mm, font=\small]
+\tikzstyle{box}=[draw, rounded corners, align=center, inner sep=4pt]
+\node[box] (login) {Login\\(JWT issued)};
+\node[box, below=of login] (dashboard) {Dashboard\\(KPIs \& occupancy)};
+\node[box, below=of dashboard] (choose) {Select action\\Entry or Exit};
+\node[box, below left=10mm and 10mm of choose] (entry) {Entry\\assign slot\\create session};
+\node[box, below right=10mm and 10mm of choose] (exit) {Exit\\close session\\compute amount};
+\node[box, below=of exit] (receipt) {Receipt modal\\minutes \& total};
+
+\draw[->] (login) -- (dashboard);
+\draw[->] (dashboard) -- (choose);
+\draw[->] (choose) -- (entry);
+\draw[->] (choose) -- (exit);
+\draw[->] (exit) -- (receipt);
+\end{tikzpicture}
+\caption{Operator workflow (UI-level) for the main entry/exit actions.}
+\label{fig:workflow}
+\end{figure}
+
+\subsection{Containerization and Automation Tooling}
+The system is packaged to support repeatable local execution and automated verification.
+Containerization encapsulates dependencies (Java runtime, Python environment, and database drivers), while orchestration coordinates service startup and networking.
+Figure~\ref{fig:compose} shows an excerpt of the Compose configuration used to orchestrate the services.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/compose.png}}
+\caption{Excerpt of the Docker Compose configuration orchestrating the web GUI and backends.}
+\label{fig:compose}
+\end{figure}
+
+\section{Results \& Discussion}
+The project was validated through unit testing, acceptance testing, stress testing, and continuous integration runs.
+Instead of listing full logs, we present evidence figures and interpret the observed behavior in terms of functional correctness and operational readiness.
+
+\subsection{Unit Testing Evidence}
+The authentication service includes unit tests executed with JUnit, and the core service includes unit tests executed with pytest.
+Figures~\ref{fig:junit} and \ref{fig:pytest} show representative passing test outputs captured during the workshop execution.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/Pruebas-JUnit.jpg}
+\caption{JUnit execution evidence for the authentication service.}
+\label{fig:junit}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/Pruebas-pytest.jpg}
+\caption{pytest execution evidence for the core service.}
+\label{fig:pytest}
+\end{figure}
+
+\subsection{Acceptance Testing with Cucumber}
+Cucumber scenarios were used to formalize expected behavior for core user stories.
+In particular, the login flow and protected resource access validate that JWT handling is correct and that the system enforces an authentication boundary.
+Figure~\ref{fig:cucumber} shows a feature excerpt used to define the acceptance criteria in a readable, behavior-driven format.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/Cucumber-results.png}
+\caption{Cucumber feature excerpt used to validate key user stories via REST calls.}
+\label{fig:cucumber}
+\end{figure}
+
+\subsection{Stress Testing with JMeter}
+JMeter was used to exercise critical endpoints under moderate concurrent load.
+The plan targets authentication and core operations (e.g., login and resource listing/registration), and collects response-time percentiles, throughput, and error rate.
+In the workshop configuration, a typical plan used 50 virtual users, 30 seconds of ramp-up, and a 3--5 minute execution window, which is sufficient to reveal slow endpoints and database bottlenecks in an academic environment.
+
+Qualitatively, the system remains stable under moderate load, with most requests completing within a few hundred milliseconds and only occasional outliers.
+This behavior is consistent with a lightweight service composition where network latency and database access dominate.
+If the system is extended for production, future work should include stronger workload modeling (e.g., daily peaks), longer endurance tests, and profiling of slow queries.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/JMeter-test-report.png}
+\caption{Evidence of stress test results with JMeter, Test and Report information}
+\label{fig:cucumber}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/JMeter-statistics.png}
+\caption{Evidence of stress test results with JMeter, Statistics}
+\label{fig:cucumber}
+\end{figure}
+
+\subsection{CI/CD Execution Evidence}
+The CI workflow automates repository checkout, environment setup for Java and Python, test execution, and Docker image builds.
+Figure~\ref{fig:gha} shows evidence of a successful GitHub Actions run.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/git-actions.png}
+\caption{Evidence of a successful CI workflow run validating builds, tests, and Docker images.}
+\label{fig:gha}
+\end{figure}
+
+\subsection{Functional Case Study: Entry--Exit Billing Consistency}
+A key correctness criterion is that the exit operation returns coherent values for timestamps, minutes, and total amount.
+In practice, the user triggers an entry for a valid plate, the system assigns a free slot and stores \texttt{check\_in\_at}, and later the exit request closes the session and returns \texttt{minutes} and \texttt{amount} computed by Eqs.~\eqref{eq:rate}--\eqref{eq:ceil}.
+During development, inconsistencies were observed when mixing timezone-aware and timezone-naive timestamps; once the time representation was made consistent, the displayed receipt values matched the persisted values and operator expectations.
+This reinforces the decision to keep the backend as the single source of truth for billing.
+
+\subsection{Summary of Quality Activities}
+Table~\ref{tab:qa} consolidates the main validation activities and their goal.
+
+\begin{table}[t]
+\centering
+\caption{Quality assurance activities and evidence.}
+\label{tab:qa}
+\begin{tabular}{p{1.55cm} p{1.75cm} p{3.8cm}}
+\hline
+\textbf{Artifact} & \textbf{Scope} & \textbf{Goal and Evidence} \\
+\hline
+JUnit tests & Auth-service & Validate authentication logic; passing run captured (Fig.~\ref{fig:junit}). \\
+pytest tests & Core-service & Validate session and billing logic; passing run captured (Fig.~\ref{fig:pytest}). \\
+Cucumber & End-to-end & Validate user stories and JWT boundary; feature excerpt shown (Fig.~\ref{fig:cucumber}). \\
+JMeter & Performance & Exercise REST endpoints under load; configuration and interpretation summarized. \\
+GitHub Actions & CI/CD & Automate build/test/image checks; successful run shown (Fig.~\ref{fig:gha}). \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Conclusions}
+This paper presented a Parking Management System implemented as a modular, dual-backend web application with a thin Web GUI.
+By separating authentication from core domain logic, the solution improves maintainability and enables independent evolution of security and business rules.
+The core service provides slot-based session tracking and deterministic billing with minute rounding, while the interface offers a fast operator workflow and an integrated receipt view.
+
+Beyond functional requirements, the project incorporates repeatable delivery practices through containerization and automated testing.
+These practices provide a foundation for future extensions such as configurable pricing policies, richer analytics and reporting, role-based access control, and production-grade deployment.
+A key limitation is that current performance evaluation is scoped to moderate loads and a limited set of scenarios; therefore, broader workload modeling and additional negative-path tests remain important future work.
+
+\section*{Acknowledgments}
+The authors thank Eng. Carlos Andr\'es Sierra, M.Sc., for guidance during the Software Engineering Seminar course.
+
+%% ------------ References ------------
+\bibliographystyle{IEEEtran}
+\bibliography{bibliography}
+
+\end{document}
